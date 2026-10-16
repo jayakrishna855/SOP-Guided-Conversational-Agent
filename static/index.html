@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Insurance SOP Agent</title>
+  <style>
+    :root {
+      --bg: #f4f5f7; --panel: #fff; --text: #1d2330; --muted: #5d6676; --border: #dde1e7;
+      --accent: #2557c7; --accent-text: #fff; --agent: #eef1f6; --caller: #2557c7; --caller-text: #fff;
+      --notice: #fff6dc; --notice-border: #e9cf7f; --error: #fdecec; --error-border: #e5a3a3;
+      --done: #2f8f5b; --preview: #fbfcfe;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #14171c; --panel: #1c2027; --text: #e4e7ec; --muted: #9aa3b2; --border: #2e3440;
+        --accent: #6d95f0; --accent-text: #0e1117; --agent: #252a33; --caller: #3a63c9; --caller-text: #fff;
+        --notice: #2e2a1a; --notice-border: #6b5a24; --error: #3a1f22; --error-border: #7a3a40;
+        --done: #4fbf83; --preview: #20252d;
+      }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text);
+           font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 16px; }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    h1 { font-size: 1.2rem; margin: 0; }
+    h2 { font-size: .95rem; margin: 0 0 8px; }
+    button { font: inherit; border-radius: 6px; padding: 7px 14px; cursor: pointer;
+             border: 1px solid var(--border); background: var(--panel); color: var(--text); }
+    button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .notice { background: var(--notice); border: 1px solid var(--notice-border); border-radius: 8px;
+              padding: 8px 12px; margin: 12px 0; font-size: .9rem; }
+    .banner { background: var(--error); border: 1px solid var(--error-border); border-radius: 8px;
+              padding: 8px 12px; margin: 12px 0; }
+    .banner[hidden] { display: none; }
+
+    ol.phases { list-style: none; display: flex; gap: 6px; padding: 0; margin: 0 0 12px; flex-wrap: wrap; }
+    ol.phases li { flex: 1 1 0; min-width: 120px; padding: 6px 10px; border-radius: 6px; font-size: .85rem;
+                   background: var(--panel); border: 1px solid var(--border); color: var(--muted); }
+    ol.phases li .n { font-weight: 600; margin-right: 4px; }
+    ol.phases li.done { color: var(--done); border-color: var(--done); }
+    ol.phases li.done .n::after { content: " ✓"; }
+    ol.phases li.current { color: var(--accent-text); background: var(--accent); border-color: var(--accent); }
+    .ended { font-size: .85rem; color: var(--muted); margin: -6px 0 12px; }
+    .ended[hidden] { display: none; }
+
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; }
+    @media (max-width: 800px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+    .card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; }
+    .chat { display: flex; flex-direction: column; height: min(70vh, 640px); min-height: 360px; }
+    .messages { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .msg { max-width: 85%; padding: 8px 12px; border-radius: 10px; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .msg.agent { align-self: flex-start; background: var(--agent); }
+    .msg.caller { align-self: flex-end; background: var(--caller); color: var(--caller-text); }
+    .msg.system { align-self: center; background: none; color: var(--muted); font-size: .85rem; font-style: italic; }
+    .msg.pending { color: var(--muted); }
+    .preview { background: var(--preview); border: 1px solid var(--border); border-radius: 6px;
+               padding: 8px 10px; margin: 8px 0; font-size: .9rem; }
+    .choices { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+    form.composer { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--border); }
+    form.composer textarea { flex: 1; resize: none; font: inherit; padding: 8px; border-radius: 6px;
+                             border: 1px solid var(--border); background: var(--bg); color: var(--text); }
+
+    .key-panel { padding: 16px; max-width: 560px; margin: 0 auto 16px; }
+    .key-panel[hidden], .layout[hidden] { display: none; }
+    .key-panel form { display: flex; gap: 8px; margin: 10px 0; flex-wrap: wrap; }
+    .key-panel input { flex: 1; min-width: 220px; font: inherit; padding: 7px 8px; border-radius: 6px;
+                       border: 1px solid var(--border); background: var(--bg); color: var(--text); }
+    .key-panel .error { color: var(--text); background: var(--error); border: 1px solid var(--error-border);
+                        border-radius: 6px; padding: 6px 10px; margin: 0; }
+    .key-panel .error:empty { display: none; }
+    .key-panel .fine { color: var(--muted); font-size: .85rem; margin: 8px 0 0; }
+
+    aside.outbox { padding: 12px; align-self: start; }
+    .empty { color: var(--muted); font-size: .9rem; margin: 0; }
+    details.mail { border-top: 1px solid var(--border); padding: 8px 0; }
+    details.mail summary { cursor: pointer; font-weight: 600; font-size: .9rem; }
+    details.mail .meta { color: var(--muted); font-size: .8rem; margin: 4px 0; }
+    details.mail pre { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; font-size: .85rem; margin: 0; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Insurance Claims Assistant</h1>
+    <button id="new-session" type="button">New session</button>
+  </header>
+
+  <p class="notice"><strong>Demo only:</strong> synthetic data. Do not enter real personal or health
+    information. Messages are sent to OpenAI to generate replies.</p>
+
+  <p id="banner" class="banner" role="alert" hidden></p>
+
+  <ol class="phases" id="phases" aria-label="Conversation steps">
+    <li data-phase="VERIFY_ID"><span class="n">1</span>Verify identity</li>
+    <li data-phase="RESOLVE_INTENT"><span class="n">2</span>Find your claim</li>
+    <li data-phase="PROCESS_CASE"><span class="n">3</span>Your claim</li>
+    <li data-phase="POST_PROCESS"><span class="n">4</span>Wrap up</li>
+  </ol>
+  <p class="ended" id="ended" hidden>This conversation has ended. Start a new session to begin again.</p>
+
+  <section class="card key-panel" id="key-panel" aria-labelledby="key-title" hidden>
+    <h2 id="key-title">Your OpenAI API key</h2>
+    <p>This demo uses your own OpenAI key to generate replies, so usage is billed to your OpenAI account (a full demo conversation typically costs a few US cents with the default model).</p>
+    <form id="key-form" autocomplete="off">
+      <label for="key-input" hidden>OpenAI API key</label>
+      <input id="key-input" type="password" placeholder="sk-…" spellcheck="false" autocomplete="off" maxlength="300" required>
+      <button class="primary" id="key-submit" type="submit">Start chat</button>
+    </form>
+    <p class="error" id="key-error" role="alert"></p>
+    <p class="fine">The key is sent to this demo's server over HTTPS and kept only in memory for your chat
+      session. It is used only to call OpenAI, is never logged or saved, and is dropped when the session ends
+      or expires. Reloading the page forgets it. If you'd rather not share a key with a hosted demo, run it
+      locally with the key in <code>.env</code> (see the README).</p>
+  </section>
+
+  <div class="layout" id="layout">
+    <section class="card chat" aria-label="Chat">
+      <div class="messages" id="messages" aria-live="polite"></div>
+      <form class="composer" id="composer">
+        <label for="input" hidden>Message</label>
+        <textarea id="input" rows="2" placeholder="Type a message…" autocomplete="off" maxlength="1000"></textarea>
+        <button class="primary" id="send" type="submit">Send</button>
+      </form>
+    </section>
+
+    <aside class="card outbox" aria-label="Outbox">
+      <h2>Outbox (simulated)</h2>
+      <p class="empty" id="outbox-empty">No emails sent in this session.</p>
+      <div id="outbox"></div>
+    </aside>
+  </div>
+</div>
+
+<script>
+(() => {
+  const PHASES = ["VERIFY_ID", "RESOLVE_INTENT", "PROCESS_CASE", "POST_PROCESS"];
+  const $ = (id) => document.getElementById(id);
+  const els = {
+    messages: $("messages"), input: $("input"), send: $("send"), composer: $("composer"),
+    newSession: $("new-session"), banner: $("banner"), phases: $("phases"), ended: $("ended"),
+    outbox: $("outbox"), outboxEmpty: $("outbox-empty"), layout: $("layout"),
+    keyPanel: $("key-panel"), keyForm: $("key-form"), keyInput: $("key-input"), keySubmit: $("key-submit"),
+    keyError: $("key-error"),
+  };
+  // apiKey is held only in this variable: never put in storage, the URL or the page.
+  const state = { sessionId: null, phase: null, allowed: [], busy: false, choiceButtons: [], apiKey: null };
+  // Statuses /api/session uses for a missing or unusable key.
+  const KEY_ERRORS = [400, 401, 403, 429, 502];
+
+  async function api(path, body) {
+    const res = await fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    let data = null;
+    try { data = await res.json(); } catch { /* non-JSON error */ }
+    if (!res.ok) {
+      const detail = data && typeof data.detail === "string" ? data.detail : "Something went wrong. Please try again.";
+      const err = new Error(detail);
+      err.status = res.status;
+      throw err;
+    }
+    return data;
+  }
+
+  function showBanner(text) {
+    els.banner.textContent = text || "";
+    els.banner.hidden = !text;
+  }
+
+  function addMessage(role, text) {
+    const div = document.createElement("div");
+    div.className = "msg " + role;
+    div.textContent = text;
+    els.messages.appendChild(div);
+    els.messages.scrollTop = els.messages.scrollHeight;
+    return div;
+  }
+
+  // The summary reply contains the preview verbatim; show it as a block with the choice buttons under it.
+  function addSummaryMessage(reply, preview) {
+    const div = document.createElement("div");
+    div.className = "msg agent";
+    const at = reply.indexOf(preview);
+    const before = at >= 0 ? reply.slice(0, at).trimEnd() : reply;
+    const after = at >= 0 ? reply.slice(at + preview.length).trimStart() : "";
+    if (before) div.appendChild(document.createTextNode(before));
+    const block = document.createElement("div");
+    block.className = "preview";
+    block.textContent = preview;
+    div.appendChild(block);
+    if (after) div.appendChild(document.createTextNode(after));
+
+    const choices = document.createElement("div");
+    choices.className = "choices";
+    const send = button("Send summary", "primary", () => doAction("send_summary"));
+    const skip = button("Skip", "", () => doAction("skip_summary"));
+    choices.append(send, skip);
+    div.appendChild(choices);
+    state.choiceButtons = [send, skip];
+    els.messages.appendChild(div);
+    els.messages.scrollTop = els.messages.scrollHeight;
+  }
+
+  function button(label, cls, onClick) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = label;
+    if (cls) b.className = cls;
+    b.addEventListener("click", onClick);
+    return b;
+  }
+
+  function renderPhase(phase) {
+    const ended = phase === "END";
+    const idx = PHASES.indexOf(phase);
+    for (const li of els.phases.children) {
+      const i = PHASES.indexOf(li.dataset.phase);
+      li.classList.toggle("done", ended || i < idx);
+      li.classList.toggle("current", !ended && i === idx);
+      if (!ended && i === idx) li.setAttribute("aria-current", "step"); else li.removeAttribute("aria-current");
+    }
+    els.ended.hidden = !ended;
+  }
+
+  function renderOutbox(outbox) {
+    els.outbox.replaceChildren();
+    els.outboxEmpty.hidden = outbox.length > 0;
+    for (const mail of outbox) {
+      const d = document.createElement("details");
+      d.className = "mail";
+      const s = document.createElement("summary");
+      s.textContent = mail.subject;
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.textContent = "To: " + mail.to;
+      const body = document.createElement("pre");
+      body.textContent = mail.body;
+      d.append(s, meta, body);
+      els.outbox.appendChild(d);
+    }
+  }
+
+  function showKeyPanel(error) {
+    els.keyError.textContent = error || "";
+    els.keyPanel.hidden = false;
+    els.layout.hidden = true;
+  }
+
+  function hideKeyPanel() {
+    els.keyPanel.hidden = true;
+    els.layout.hidden = false;
+    els.keyError.textContent = "";
+  }
+
+  function updateControls() {
+    const canChat = !!state.sessionId && state.phase !== "END";
+    els.input.disabled = state.busy || !canChat;
+    els.send.disabled = state.busy || !canChat;
+    els.newSession.disabled = state.busy;
+    els.keyInput.disabled = state.busy;
+    els.keySubmit.disabled = state.busy;
+    const choosing = state.allowed.includes("send_summary");
+    for (const b of state.choiceButtons) b.disabled = state.busy || !choosing;
+  }
+
+  function apply(data) {
+    state.phase = data.phase;
+    state.allowed = data.allowed_actions || [];
+    if (data.summary_preview) addSummaryMessage(data.reply, data.summary_preview);
+    else addMessage("agent", data.reply);
+    renderPhase(data.phase);
+    renderOutbox(data.outbox || []);
+  }
+
+  async function run(task) {
+    state.busy = true;
+    updateControls();
+    try { await task(); }
+    finally {
+      state.busy = false;
+      updateControls();
+      if (!els.keyPanel.hidden) els.keyInput.focus();
+      else if (!els.input.disabled) els.input.focus();
+    }
+  }
+
+  function handleError(err) {
+    if (err.status === 404) { state.sessionId = null; showBanner(err.message); }
+    else addMessage("system", err.message);
+  }
+
+  // Resets the current session on the server when there is one (discarding it; the server keeps
+  // the same key for the new one), else creates one, sending the caller's key if they gave one.
+  function newSession() {
+    return run(async () => {
+      els.messages.replaceChildren();
+      state.choiceButtons = [];
+      const old = state.allowed.includes("reset") ? state.sessionId : null;
+      state.sessionId = null;
+      state.allowed = [];
+      try {
+        let data = null;
+        if (old) {
+          try { data = await api("/api/action", { session_id: old, action: "reset" }); }
+          catch (err) { if (err.status !== 404) throw err; }  // expired: just create a new one
+        }
+        if (!data) {
+          try { data = await api("/api/session", state.apiKey ? { api_key: state.apiKey } : {}); }
+          catch (err) {
+            if (!KEY_ERRORS.includes(err.status)) throw err;
+            const sentKey = !!state.apiKey;
+            state.apiKey = null;
+            showBanner("");
+            showKeyPanel(sentKey ? err.message : "");  // no key sent yet: just ask for one
+            return;
+          }
+        }
+        state.sessionId = data.session_id;
+        showBanner("");
+        hideKeyPanel();
+        apply(data);
+      } catch (err) { handleError(err); }
+    });
+  }
+
+  function sendMessage(text) {
+    return run(async () => {
+      addMessage("caller", text);
+      const pending = addMessage("agent pending", "…");
+      try {
+        const data = await api("/api/chat", { session_id: state.sessionId, message: text });
+        pending.remove();
+        apply(data);
+      } catch (err) { pending.remove(); handleError(err); }
+    });
+  }
+
+  function doAction(action) {
+    if (!state.allowed.includes(action)) return;
+    return run(async () => {
+      try {
+        apply(await api("/api/action", { session_id: state.sessionId, action }));
+      } catch (err) { handleError(err); }
+    });
+  }
+
+  els.composer.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const text = els.input.value.trim();
+    if (!text || els.send.disabled) return;
+    els.input.value = "";
+    sendMessage(text);
+  });
+  els.input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); els.composer.requestSubmit(); }
+  });
+  els.newSession.addEventListener("click", newSession);
+  els.keyForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const key = els.keyInput.value.trim();
+    els.keyInput.value = "";
+    if (!key || state.busy) return;
+    state.apiKey = key;
+    els.keyError.textContent = "";
+    newSession();
+  });
+
+  newSession();
+})();
+</script>
+</body>
+</html>
