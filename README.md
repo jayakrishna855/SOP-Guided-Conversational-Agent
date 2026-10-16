@@ -6,8 +6,7 @@ A chat agent for insurance claims support. It talks naturally but always follows
 
 The AI model only understands messages and words the replies. The app's own code decides when you're verified, what claim data can be shown and what happens next, so the model can't skip a step or leak data.
 
-**Live demo:** _URL_
-
+**Live demo:** https://insurance-sop-agent-ux7j.onrender.com/
 > Demo only: all people and claims are made up. Don't enter real personal information. Emails are simulated. The hosted demo sleeps when idle, so the first visit may take about a minute to load. Please wait for few minutes until the server is up.
 
 ## Getting started
