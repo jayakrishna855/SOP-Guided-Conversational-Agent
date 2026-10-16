@@ -6,6 +6,7 @@ from typing import Annotated, Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, WrapValidator, field_validator
 
 IdentityField = Literal["full_name", "dob", "phone", "email", "id_last4"]
+Emotion = Literal["none", "frustrated", "angry", "anxious", "confused"]
 Intent = Literal["status_inquiry", "denial_question", "document_submission", "next_steps", "general_claim_question"]
 
 # Names the model may use for the last-4 field; both ID types are one field.
@@ -76,6 +77,9 @@ class Extraction(_Lenient):
     # The caller signals they're finished ("that's all", "thanks, bye"). Added in M2b:
     # 5.4.8 needs it and nothing else in the schema carries it.
     done: Annotated[bool, _lenient(False)] = False
+    # How the caller sounds, and whether they object to a required step (support.py).
+    emotion: Annotated[Emotion, _lenient("none")] = "none"
+    pushback: Annotated[bool, _lenient(False)] = False
     refused_fields: Annotated[list[str], _lenient(list)] = Field(default_factory=list)
     confirmation: Annotated[Literal["yes", "no", "none"], _lenient("none")] = "none"
 
@@ -90,7 +94,7 @@ class Extraction(_Lenient):
                     value[name] = value.pop(alias)
         return value
 
-    @field_validator("wants_human", "done", mode="before")
+    @field_validator("wants_human", "done", "pushback", mode="before")
     @classmethod
     def _strict_bool(cls, value):
         # "maybe" or 1 shouldn't count as asking for a human.
@@ -155,6 +159,8 @@ def extraction_json_schema(followup_topics: list[str]) -> dict[str, Any]:
         "scope": enum(["in_scope", "out_of_scope", "small_talk"]),
         "wants_human": {"type": "boolean"},
         "done": {"type": "boolean"},
+        "emotion": enum(Emotion.__args__),
+        "pushback": {"type": "boolean"},
         "refused_fields": {"type": "array", "items": enum(IdentityField.__args__)},
         "confirmation": enum(["yes", "no", "none"]),
     })

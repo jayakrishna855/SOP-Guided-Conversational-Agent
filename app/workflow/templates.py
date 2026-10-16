@@ -92,6 +92,9 @@ _HANDOFF_OFFERS = {
     "deadline_passed": "Would you like me to connect you with a human representative to discuss your options?",
     "alternatives_exhausted": ("Would you like me to connect you with a human claims representative to review "
                                "the file?"),
+    "caller_upset": ("I don't want to keep you going in circles. I'm not able to share claim information here "
+                     "without completing these checks, but a human representative can help you another way. "
+                     "Would you like me to connect you?"),
 }
 _HANDOFFS = {
     "consent_timeout": ("I haven't received the policyholder's consent, so I can't share any information on this "
@@ -104,6 +107,29 @@ _DEFAULT_HANDOFF = "Okay, I'm transferring you to a human representative now. Th
 SIMULATED_NOTE = " (In this demo the transfer is simulated.)"
 
 
+_ACKNOWLEDGEMENTS = {
+    "frustrated": "I understand this is frustrating, and I'm sorry for the hassle.",
+    "angry": "I'm sorry you're upset, and I understand why.",
+    "anxious": "I understand this is worrying. I'm here to help.",
+    "confused": "Sorry for the confusion, let me make this clearer.",
+}
+# Why each gate exists, and the acceptable alternatives (other details, a human).
+_GATE_REASONS = {
+    "identity": ("Claim details are protected, so I have to verify your identity before I can share anything. "
+                 "It's what stops someone else from getting your information. Any three of your full name, date "
+                 "of birth, phone number, email address, or the last four digits of your SSN or national ID will "
+                 "do, so if you'd rather not share one, we can use another. You can also ask for a human "
+                 "representative at any time."),
+    "consent": ("Because you're calling on someone else's behalf, the policyholder has to agree before I can share "
+                "their information. That protects their privacy. You can also ask for a human representative at "
+                "any time."),
+}
+
+_GATE_REASONS_AGAIN = {
+    "identity": ("As I mentioned, I can't share claim details until your identity is verified, because that's what "
+                 "keeps your information safe."),
+    "consent": "As I mentioned, I need the policyholder's consent before I can share their information.",
+}
 
 def _claim_phrase(c: dict[str, str]) -> str:
     return f"{c['case_id']}, a {c['case_type']} claim from {fmt_month(c['created_at'])} that is {c['status']}"
@@ -235,6 +261,8 @@ TEMPLATES: dict[Action, Callable[[dict[str, Any]], str]] = {
     Action.OFFER_HANDOFF: lambda f: _HANDOFF_OFFERS[f["reason"]],
     Action.HANDOFF: lambda f: _HANDOFFS.get(f["reason"], _DEFAULT_HANDOFF) + SIMULATED_NOTE,
     Action.HANDOFF_DECLINED: lambda f: f"No problem. {f['steer']}",
+    Action.ACKNOWLEDGE_FEELING: lambda f: _ACKNOWLEDGEMENTS[f["emotion"]],
+    Action.EXPLAIN_GATE: lambda f: (_GATE_REASONS_AGAIN if f.get("again") else _GATE_REASONS)[f["gate"]],
     Action.SESSION_ENDED: lambda f: "This conversation has ended. Please start a new session if you need more help.",
 }
 

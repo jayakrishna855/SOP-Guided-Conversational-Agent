@@ -47,6 +47,9 @@ class Action(StrEnum):
     OFFER_HANDOFF = "offer_handoff"
     HANDOFF = "handoff"
     HANDOFF_DECLINED = "handoff_declined"
+    # Emotional support (support.py): put before the phase's own steps.
+    ACKNOWLEDGE_FEELING = "acknowledge_feeling"
+    EXPLAIN_GATE = "explain_gate"  # why verification or consent is required
     SESSION_ENDED = "session_ended"
 
 

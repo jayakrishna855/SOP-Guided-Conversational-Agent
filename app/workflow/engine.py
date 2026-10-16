@@ -9,7 +9,7 @@ from app.config import Settings
 from app.model.client import ExtractRequest, ModelAdapter, ReplyRequest, ReplyStep
 from app.model.extraction import EMPTY_EXTRACTION, Extraction, parse_extraction
 from app.services import Services
-from app.workflow import templates
+from app.workflow import support, templates
 from app.workflow.actions import Action, PhaseResult, Step, TurnContext, handoff, offer_handoff
 from app.workflow.guard import LeakGuard
 from app.workflow.memory import merge
@@ -102,8 +102,9 @@ class Engine:
             new_identity_fields=info.new_identity_fields, new_refusals=info.new_refusals, new_hints=info.new_hints,
             turn_hints=info.turn_hints,
         )
-
-        result = self._global_rules(ctx) or HANDLERS[session.phase](ctx)
+        
+        support_steps, escalation = support.plan(ctx, self.settings.max_pushback)
+        result = escalation or self._global_rules(ctx) or HANDLERS[session.phase](ctx)
         steps = list(result.steps)
         chained = 0
         while result.next_phase is not None:
@@ -160,10 +161,14 @@ class Engine:
             if ex.confirmation == "no":
                 if reason == "out_of_scope":
                     s.out_of_scope_streak = 0
+                if reason == "caller_upset":
+                    s.pushback_streak = 0
                 return PhaseResult([Step(Action.HANDOFF_DECLINED, {"steer": self._steer(s)})])
             # Anything else: the caller moved on, so the offer lapses.
         if ex.wants_human:
             return offer_handoff(s, "human_request")
+        if support.pushing_back(ctx):
+            return None  # an objection to a gate, not off-topic: the handler asks for what's still needed
         decision = apply_scope(s, ex, self.settings.out_of_scope_threshold)
         if decision == "refuse":
             return PhaseResult([Step(Action.REFUSE_OUT_OF_SCOPE, {"steer": self._steer(s)})])

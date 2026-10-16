@@ -29,6 +29,7 @@ HandoffReason = Literal[
     "no_relationship",
     "deadline_passed",
     "alternatives_exhausted",
+    "caller_upset",  # repeated pushback on verification or consent
 ]
 
 
@@ -106,6 +107,8 @@ class Session(BaseModel):
     followups: list[FollowUp] = Field(default_factory=list)
 
     out_of_scope_streak: int = 0
+    pushback_streak: int = 0
+    # Consecutive turns pushing back on verification or consent (support.py).
     # A handoff offer waiting for the caller's yes/no, and why the session ended.
     pending_offer: HandoffReason | None = None
     end_reason: HandoffReason | Literal["completed"] | None = None

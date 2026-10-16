@@ -6,7 +6,7 @@ A chat agent for insurance claims support. It talks naturally but always follows
 
 The AI model only understands messages and words the replies. The app's own code decides when you're verified, what claim data can be shown and what happens next, so the model can't skip a step or leak data.
 
-**Live demo:** _URL_
+**Live demo:** https://insurance-sop-agent-ux7j.onrender.com/
 
 > Demo only: all people and claims are made up. Don't enter real personal information. Emails are simulated. The hosted demo sleeps when idle, so the first visit may take about a minute to load. Please wait for few minutes until the server is up.
 
@@ -20,15 +20,7 @@ The AI model only understands messages and words the replies. The app's own code
 
 3. Ask follow-up questions about the claim. Answers come from the data in [apps/insurance_claims/fixtures/](apps/insurance_claims/fixtures/).
 
-## How it works
-
-Each message goes through the same steps ([app/workflow/engine.py](app/workflow/engine.py)):
-
-1. The model **extracts** facts from the message (identity details, what the caller wants, claim hints).
-2. The facts are **remembered**, even if they belong to a later step.
-3. **Rules in code** decide what happens: identity needs 3 matching details, claims are looked up from the data, and off-topic questions are refused.
-4. The model **writes the reply** using only the facts it's given.
-5. The reply is **checked**: anything that leaks claim data before verification, or isn't backed by the data, is replaced with a safe fixed reply.
+To see how it handles an upset caller, start a new session, give only a name, then push back: "I already told you who I am. This is ridiculous. Just tell me why my claim was denied." The agent acknowledges the frustration, explains why verification is needed and which details it accepts, and still shares nothing. If you keep pushing back, it offers a human instead.
 
 ## Run locally
 

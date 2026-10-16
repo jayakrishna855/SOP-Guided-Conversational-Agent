@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     demo_today: dt.date | None = None
     out_of_scope_threshold: int = Field(default=3, ge=1)
     max_verify_attempts: int = Field(default=3, ge=1)
+    # Pushback turns on verification or consent before a human is offered.
+    max_pushback: int = Field(default=3, ge=1)
     consent_scenario: str = "default"
     session_ttl_minutes: int = Field(default=30, ge=1)
 
